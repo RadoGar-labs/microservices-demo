@@ -6,10 +6,10 @@ resource "aws_security_group" "microservices-demo-staging-k8s" {
   name        = "microservices-demo-staging-k8s"
   description = "allow all internal traffic, all traffic from bastion and http from anywhere"
   ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    self        = "true"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = "true"
   }
   ingress {
     from_port       = 0
@@ -29,10 +29,16 @@ resource "aws_security_group" "microservices-demo-staging-k8s" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    Owner     = "RGA"
+    git_org   = "RadoGar-labs"
+    git_repo  = "microservices-demo"
+    yor_trace = "4f4f7142-2943-4cd9-ab4f-1352f26fb4ed"
+  }
 }
 
 resource "aws_instance" "k8s-node" {
-  depends_on      = [ "aws_instance.k8s-master" ] 
+  depends_on      = ["aws_instance.k8s-master"]
   count           = "${var.nodecount}"
   instance_type   = "${var.node_instance_type}"
   ami             = "${lookup(var.aws_amis, var.aws_region)}"
@@ -66,6 +72,12 @@ resource "aws_instance" "k8s-node" {
     command = "ssh -i ${var.private_key_file} -o StrictHostKeyChecking=no ubuntu@${self.private_ip} sudo `cat join.cmd`"
   }
 
+  tags = {
+    Owner     = "RGA"
+    git_org   = "RadoGar-labs"
+    git_repo  = "microservices-demo"
+    yor_trace = "11916c15-116e-408a-aa3e-21c7e7e6c685"
+  }
 }
 
 resource "aws_instance" "k8s-master" {
@@ -112,26 +124,38 @@ resource "aws_instance" "k8s-master" {
   provisioner "local-exec" {
     command = "scp -i ${var.private_key_file} -o StrictHostKeyChecking=no ubuntu@${self.private_ip}:~/config ~/.kube/"
   }
+  tags = {
+    Owner     = "RGA"
+    git_org   = "RadoGar-labs"
+    git_repo  = "microservices-demo"
+    yor_trace = "3a7c71d9-cea9-49cb-86f3-feb799517841"
+  }
 }
 
 resource "null_resource" "up" {
-  depends_on      = [ "aws_instance.k8s-node" ]
+  depends_on = ["aws_instance.k8s-node"]
   provisioner "local-exec" {
     command = "./up.sh ${var.weave_cloud_token}"
   }
 }
 
 resource "aws_elb" "microservices-demo-staging-k8s" {
-  depends_on = [ "aws_instance.k8s-node" ]
-  name = "microservices-demo-staging-k8s"
-  instances = ["${aws_instance.k8s-node.*.id}"]
+  depends_on         = ["aws_instance.k8s-node"]
+  name               = "microservices-demo-staging-k8s"
+  instances          = ["${aws_instance.k8s-node.*.id}"]
   availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
-  security_groups = ["${aws_security_group.microservices-demo-staging-k8s.id}"]
+  security_groups    = ["${aws_security_group.microservices-demo-staging-k8s.id}"]
 
   listener {
-    lb_port = 80
-    instance_port = 30001
-    lb_protocol = "http"
+    lb_port           = 80
+    instance_port     = 30001
+    lb_protocol       = "http"
     instance_protocol = "http"
+  }
+  tags = {
+    Owner     = "RGA"
+    git_org   = "RadoGar-labs"
+    git_repo  = "microservices-demo"
+    yor_trace = "9afd19a5-f133-4ee5-a40c-f3e0d24be9c1"
   }
 }
